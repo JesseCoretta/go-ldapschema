@@ -39,7 +39,7 @@ var invalidSchema *SubschemaSubentry = &SubschemaSubentry{
 /*
 NewSubschemaSubentry returns a freshly initialized instance of *[SubschemaSubentry].
 Instances of this type serve as a platform upon which individual text definitions
-may be parsed into usable instances of [SchemaDefinition].
+may be parsed into usable instances of [Definition].
 
 The prime variadic argument controls whether to prime, or "pre-load", standard
 [LDAPSyntax] and [MatchingRule] definitions sourced from RFC 4512, RFC 4523 and
@@ -69,7 +69,10 @@ func NewSubschemaSubentry(prime ...bool) (sch *SubschemaSubentry, err error) {
 		}
 	}
 
-	// Set internal *SubschemaSubentry reference.
+	// Set internal *SubschemaSubentry pointer
+	// reference, as it is often necessary for
+	// definition types to reference or verify
+	// other types (i.e.: at -> ls).
 	sch.LDAPSyntaxes.setSchema(sch)
 	sch.MatchingRules.setSchema(sch)
 	sch.AttributeTypes.setSchema(sch)
@@ -359,11 +362,11 @@ func (r *SubschemaSubentry) ReadBytes(data []byte) error {
 	return r.registerSchemaByCase(result)
 }
 
-func (r *SubschemaSubentry) Push(defs ...SchemaDefinition) {
+func (r *SubschemaSubentry) Push(defs ...Definition) {
 	r.push(false, defs...)
 }
 
-func (r *SubschemaSubentry) push(internal bool, defs ...SchemaDefinition) {
+func (r *SubschemaSubentry) push(internal bool, defs ...Definition) {
 	for i := 0; i < len(defs); i++ {
 		def := defs[i]
 		switch tv := def.(type) {
@@ -391,13 +394,13 @@ func (r *SubschemaSubentry) push(internal bool, defs ...SchemaDefinition) {
 
 /*
 Unregister returns an error following an attempt to unregister one
-or more [SchemaDefinition] qualifier instances.
+or more [Definition] qualifier instances.
 
 Note that [MatchingRuleUse] instances cannot be unregistered directly.
 Instead, one must unregister the associated [MatchingRule] instance
 to accomplish this.
 */
-func (r *SubschemaSubentry) Unregister(defs ...SchemaDefinition) (err error) {
+func (r *SubschemaSubentry) Unregister(defs ...Definition) (err error) {
 	for i := 0; i < len(defs); i++ {
 		def := defs[i]
 		switch tv := def.(type) {
@@ -551,7 +554,7 @@ func (r AttributeType) EffectiveSyntax() (syntax *LDAPSyntax) {
 }
 
 /*
-SchemaDefinition is an interface type qualified through instances of
+Definition is an interface type qualified through instances of
 the following types:
 
   - [LDAPSyntax]
@@ -563,7 +566,7 @@ the following types:
   - [NameForm]
   - [DITStructureRule]
 */
-type SchemaDefinition interface {
+type Definition interface {
 	// OID returns the official ASN.1 OBJECT IDENTIFIER
 	// (numeric OID) belonging to the underlying TYPE --
 	// NOT the individual definition's assigned OID (see
@@ -600,7 +603,7 @@ type SchemaDefinition interface {
 }
 
 /*
-SchemaDefinitions is an interface type qualified through instances
+Definitions is an interface type qualified through instances
 of the following types:
 
   - [LDAPSyntaxes]
@@ -616,7 +619,7 @@ It is generally discouraged to modify instances of the above types
 directly due to thread safety concerns; instead, perform modifications
 via the appropriate instance of the [SubschemaSubentry] type.
 */
-type SchemaDefinitions interface {
+type Definitions interface {
 	// Len returns the integer length of the receiver instance.
 	Len() int
 
@@ -637,7 +640,7 @@ type SchemaDefinitions interface {
 	String() string
 
 	// Contains returns an integer index value indicative
-	// of whether the specified SchemaDefinition -- identified
+	// of whether the specified Definition -- identified
 	// by descriptor or numeric OID -- resides within
 	// the receiver instance and what what numerical index.
 	//
@@ -654,14 +657,14 @@ type SchemaDefinitions interface {
 	// subsequently returned.
 	Contains(string) int
 
-	// Push appends a SchemaDefinition instance into the
+	// Push appends a Definition instance into the
 	// receiver instance. Uniqueness checks are conducted
 	// automatically using the numeric OID (or rule ID in
 	// the case of a DITStructureRule).
-	Push(...SchemaDefinition)
+	Push(...Definition)
 
-	// Table returns an instance of [SchemaDefinitionTable].
-	Table() SchemaDefinitionTable
+	// Table returns an instance of [DefinitionTable].
+	Table() DefinitionTable
 
 	// setSchema is a private method which assigns the input
 	// instance of SubschemaSubentry to the receiver instance.
@@ -673,7 +676,7 @@ type SchemaDefinitions interface {
 
 /*
 SubschemaSubentry implements [§ 4.2 of RFC 4512] and contains slice types
-of various [SchemaDefinition] types.
+of various [Definition] types.
 
 Instances of this type are thread safe by way of an internal instance
 of [sync/Mutex]. No special actions are required by users to make use
@@ -693,8 +696,8 @@ type SubschemaSubentry struct {
 }
 
 /*
-SchemaDefinitionTable implements a basic map[string][]string lookup table for a
-particular [SchemaDefinitions] instance.
+DefinitionTable implements a basic map[string][]string lookup table for a
+particular [Definitions] instance.
 
 With the exception of [DITStructureRules], which uses integer identifiers (e.g.: "1"), the
 keys are numeric OIDs (e.g.: "2.5.4.3").
@@ -714,7 +717,7 @@ Instances of this type may be created using any of the following methods:
   - [NameForms.Table]
   - [DITStructureRules.Table]
 */
-type SchemaDefinitionTable map[string][]string
+type DefinitionTable map[string][]string
 
 /*
 primeBuiltIns is a private method used to pre-load standard LDAPSyntax
@@ -1726,7 +1729,7 @@ func (r *SubschemaSubentry) RegisterDITStructureRule(input any) (err error) {
 
 /*
 Counters returns an instance of [9]uint, each slice representing the
-current number of [SchemaDefinition] instances of a particular collection,
+current number of [Definition] instances of a particular collection,
 while the final slice represents the sum total of the previous eight (8).
 
 Collection indices are as follows:
@@ -2151,7 +2154,7 @@ func (r *DITStructureRules) setSchema(schema *SubschemaSubentry) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2174,12 +2177,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [LDAPSyntax.Valid] encounters no issues
 */
-func (r *LDAPSyntaxes) Push(defs ...*LDAPSyntax) {
+func (r *LDAPSyntaxes) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+		var def *LDAPSyntax
+		switch tv := defs[i].(type) {
+		case *LDAPSyntax:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2207,7 +2216,7 @@ func (r *LDAPSyntaxes) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2230,12 +2239,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [MatchingRule.Valid] encounters no issues
 */
-func (r *MatchingRules) Push(defs ...*MatchingRule) {
+func (r *MatchingRules) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *MatchingRule
+                switch tv := defs[i].(type) {
+                case *MatchingRule:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2265,7 +2280,7 @@ func (r *MatchingRules) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2288,12 +2303,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [AttributeType.Valid] encounters no issues
 */
-func (r *AttributeTypes) Push(defs ...*AttributeType) {
+func (r *AttributeTypes) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *AttributeType
+                switch tv := defs[i].(type) {
+                case *AttributeType:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2321,7 +2342,7 @@ func (r *AttributeTypes) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2337,7 +2358,7 @@ func (r MatchingRuleUses) Contains(id string) (idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2360,12 +2381,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [ObjectClass.Valid] encounters no issues
 */
-func (r *ObjectClasses) Push(defs ...*ObjectClass) {
+func (r *ObjectClasses) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *ObjectClass
+                switch tv := defs[i].(type) {
+                case *ObjectClass:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2393,7 +2420,7 @@ func (r *ObjectClasses) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2416,12 +2443,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [DITContentRule.Valid] encounters no issues
 */
-func (r *DITContentRules) Push(defs ...*DITContentRule) {
+func (r *DITContentRules) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *DITContentRule
+                switch tv := defs[i].(type) {
+                case *DITContentRule:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2446,7 +2479,7 @@ func (r *DITContentRules) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2469,12 +2502,18 @@ evaluate as true:
   - NumericOID of def does not already exist as a slice
   - Execution of [NameForm.Valid] encounters no issues
 */
-func (r *NameForms) Push(defs ...*NameForm) {
+func (r *NameForms) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *NameForm
+                switch tv := defs[i].(type) {
+                case *NameForm:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2502,7 +2541,7 @@ func (r *NameForms) truncate(idx int) {
 }
 
 /*
-Contains returns an integer index value indicative of a [SchemaDefinition]
+Contains returns an integer index value indicative of a [Definition]
 residing within the receiver instance which bears an identical value to id.
 If not found, -1 is returned.
 */
@@ -2525,12 +2564,18 @@ evaluate as true:
   - RuleID of def does not already exist as a slice
   - Execution of [DITStructureRule.Valid] encounters no issues
 */
-func (r *DITStructureRules) Push(defs ...*DITStructureRule) {
+func (r *DITStructureRules) Push(defs ...Definition) {
 	r.lock()
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-		def := defs[i]
+                var def *DITStructureRule
+                switch tv := defs[i].(type) {
+                case *DITStructureRule:
+                        def = tv
+                default:
+                        return
+                }
 		if def.Valid() && r.Contains(def.RuleID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2629,11 +2674,11 @@ type LDAPSyntaxes struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [LDAPSyntax] instances within the receiver.
 */
-func (r LDAPSyntaxes) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r LDAPSyntaxes) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = []string{def.Description}
@@ -2832,11 +2877,11 @@ type MatchingRules struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [MatchingRule] instances within the receiver.
 */
-func (r MatchingRules) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r MatchingRules) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -3046,11 +3091,11 @@ type AttributeTypes struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [AttributeType] instances within the receiver.
 */
-func (r AttributeTypes) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r AttributeTypes) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -3303,11 +3348,11 @@ type MatchingRuleUses struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [MatchingRuleUse] instances within the receiver.
 */
-func (r MatchingRuleUses) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r MatchingRuleUses) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -3502,11 +3547,11 @@ type ObjectClasses struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [ObjectClass] instances within the receiver.
 */
-func (r ObjectClasses) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r ObjectClasses) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -3908,11 +3953,11 @@ type DITContentRules struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [DITContentRule] instances within the receiver.
 */
-func (r DITContentRules) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r DITContentRules) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -4107,11 +4152,11 @@ type NameForms struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [NameForm] instances within the receiver.
 */
-func (r NameForms) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r NameForms) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.NumericOID] = def.Name
@@ -4303,11 +4348,11 @@ type DITStructureRules struct {
 }
 
 /*
-Inventory returns an instance of [SchemaDefinitionTable] which represents the current
+Inventory returns an instance of [DefinitionTable] which represents the current
 inventory of [DITStructureRule] instances within the receiver.
 */
-func (r DITStructureRules) Table() (table SchemaDefinitionTable) {
-	table = make(SchemaDefinitionTable, 0)
+func (r DITStructureRules) Table() (table DefinitionTable) {
+	table = make(DefinitionTable, 0)
 	for i := 0; i < r.Len(); i++ {
 		def := r.Index(i)
 		table[def.RuleID] = def.Name

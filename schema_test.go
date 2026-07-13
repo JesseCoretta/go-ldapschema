@@ -363,7 +363,7 @@ func ExampleSubschemaSubentry_Push_dITContentRule() {
 
 /*
 This example demonstrates a convenient means of counting
-each [SchemaDefinition] by category. The return type (an
+each [Definition] by category. The return type (an
 instance of [9]uint) is of the following structure:
 
 	 LDAPSyntaxes
@@ -1041,7 +1041,7 @@ func TestSubschemaSubentry_codecov(t *testing.T) {
 	exampleSchema.NameForms.Contains(exampleSchema.NameForms.defs[0].Identifier())
 	exampleSchema.NameForms.unregister(exampleSchema.NameForms.Len()-1, form, func(*NameForm) error { return nil })
 
-	var def SchemaDefinition
+	var def Definition
 	def, _ = exampleSchema.LDAPSyntax(`INTEGER`)
 	_ = def.XOrigin()
 
@@ -1138,10 +1138,10 @@ func TestSubschemaSubentry_codecov(t *testing.T) {
 	_ = exampleSchema.RegisterDITContentRule(DITContentRule{})
 
 	// Try to load duplicates just for coverage purposes.
-	_ = exampleSchema.RegisterAttributeType(testSchemaDefinitions[0])
-	_ = exampleSchema.RegisterObjectClass(testSchemaDefinitions[10])
-	_ = exampleSchema.RegisterNameForm(testSchemaDefinitions[13])
-	_ = exampleSchema.RegisterDITStructureRule(testSchemaDefinitions[14])
+	_ = exampleSchema.RegisterAttributeType(testDefinitions[0])
+	_ = exampleSchema.RegisterObjectClass(testDefinitions[10])
+	_ = exampleSchema.RegisterNameForm(testDefinitions[13])
+	_ = exampleSchema.RegisterDITStructureRule(testDefinitions[14])
 	_ = exampleSchema.RegisterNameForm(nil)
 	_ = exampleSchema.RegisterNameForm(NameForm{})
 	_ = exampleSchema.RegisterNameForm(`( 1.3.6.1.4.1.56521.999.38.1.16
@@ -1387,7 +1387,7 @@ func TestSubschemaSubentry_codecov(t *testing.T) {
 // "exampleSchema" instance for unit tests/examples.
 // Some are make-believe, others are distinguished,
 // such as "cn" or "objectClass".
-var testSchemaDefinitions []string = []string{
+var testDefinitions []string = []string{
 	`attributeType: ( 2.5.4.0
 	        NAME 'objectClass'
 	        EQUALITY objectIdentifierMatch
