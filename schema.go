@@ -2254,13 +2254,13 @@ func (r *MatchingRules) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *MatchingRule
-                switch tv := defs[i].(type) {
-                case *MatchingRule:
-                        def = tv
-                default:
-                        return
-                }
+		var def *MatchingRule
+		switch tv := defs[i].(type) {
+		case *MatchingRule:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2318,13 +2318,13 @@ func (r *AttributeTypes) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *AttributeType
-                switch tv := defs[i].(type) {
-                case *AttributeType:
-                        def = tv
-                default:
-                        return
-                }
+		var def *AttributeType
+		switch tv := defs[i].(type) {
+		case *AttributeType:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2396,13 +2396,13 @@ func (r *ObjectClasses) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *ObjectClass
-                switch tv := defs[i].(type) {
-                case *ObjectClass:
-                        def = tv
-                default:
-                        return
-                }
+		var def *ObjectClass
+		switch tv := defs[i].(type) {
+		case *ObjectClass:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2458,13 +2458,13 @@ func (r *DITContentRules) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *DITContentRule
-                switch tv := defs[i].(type) {
-                case *DITContentRule:
-                        def = tv
-                default:
-                        return
-                }
+		var def *DITContentRule
+		switch tv := defs[i].(type) {
+		case *DITContentRule:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2517,13 +2517,13 @@ func (r *NameForms) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *NameForm
-                switch tv := defs[i].(type) {
-                case *NameForm:
-                        def = tv
-                default:
-                        return
-                }
+		var def *NameForm
+		switch tv := defs[i].(type) {
+		case *NameForm:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.NumericOID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
@@ -2579,13 +2579,13 @@ func (r *DITStructureRules) Push(defs ...Definition) {
 	defer r.unlock()
 
 	for i := 0; i < len(defs); i++ {
-                var def *DITStructureRule
-                switch tv := defs[i].(type) {
-                case *DITStructureRule:
-                        def = tv
-                default:
-                        return
-                }
+		var def *DITStructureRule
+		switch tv := defs[i].(type) {
+		case *DITStructureRule:
+			def = tv
+		default:
+			return
+		}
 		if def.Valid() && r.Contains(def.RuleID) == -1 {
 			def.schema = r.schema
 			r.defs = append(r.defs, def)
