@@ -2042,6 +2042,16 @@ func (r *MatchingRuleUses) IsZero() bool {
 }
 
 /*
+Push performs no useful task, as [Definition] instances of *MatchingRulUse
+are not intended for manual insertion into a collection. Instead, these
+types are auto-generated based on the state of [AttributeType] instances.
+
+This method only exists to satisfy Go's interface signature requirements
+with respect to the [Definitions] type.
+*/
+func (r *MatchingRuleUses) Push(_ ...Definition) {}
+
+/*
 IsZero returns a Boolean value indicative of a nil receiver state.
 */
 func (r *ObjectClasses) IsZero() bool {

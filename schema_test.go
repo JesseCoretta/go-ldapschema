@@ -1163,6 +1163,7 @@ func TestSubschemaSubentry_codecov(t *testing.T) {
 	exampleSchema.RegisterDITContentRule(`()`)
 
 	mrus := exampleSchema.NewMatchingRuleUses()
+	mrus.Push()
 	mru := &MatchingRuleUse{
 		NumericOID:  `2.5.13.15`,
 		Description: `this is text`,
