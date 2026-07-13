@@ -663,6 +663,13 @@ type Definitions interface {
 	// the case of a DITStructureRule).
 	Push(...Definition)
 
+	// IndexInterface performs the same function as the Index
+	// method, except the return value for IndexInterface will
+	// return an instance of Definition as opposed to a concrete
+	// type. This method is useful when iterating through whole
+	// collections of definitions (plural).
+	IndexInterface(int) Definition
+
 	// Table returns an instance of [DefinitionTable].
 	Table() DefinitionTable
 
@@ -2709,6 +2716,14 @@ func (r *LDAPSyntaxes) Index(idx int) (def *LDAPSyntax) {
 	return
 }
 
+func (r *LDAPSyntaxes) IndexInterface(idx int) (def Definition) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
 /*
 String returns the string representation of the receiver instance.
 */
@@ -2905,6 +2920,14 @@ Index returns the Nth [MatchingRule] instances found within the
 receiver instance.
 */
 func (r *MatchingRules) Index(idx int) (def *MatchingRule) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
+func (r *MatchingRules) IndexInterface(idx int) (def Definition) {
 	if 0 <= idx && idx < r.Len() {
 		def = r.defs[idx]
 	}
@@ -3126,6 +3149,14 @@ Index returns the Nth [AttributeType] instances found within the
 receiver instance.
 */
 func (r *AttributeTypes) Index(idx int) (def *AttributeType) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
+func (r *AttributeTypes) IndexInterface(idx int) (def Definition) {
 	if 0 <= idx && idx < r.Len() {
 		def = r.defs[idx]
 	}
@@ -3383,6 +3414,14 @@ func (r *MatchingRuleUses) Index(idx int) (def *MatchingRuleUse) {
 	return
 }
 
+func (r *MatchingRuleUses) IndexInterface(idx int) (def Definition) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
 /*
 push is a private method which appends one or more instances of
 MatchingRuleUse to the receiver instance.
@@ -3575,6 +3614,14 @@ Index returns the Nth [ObjectClass] instances found within the
 receiver instance.
 */
 func (r *ObjectClasses) Index(idx int) (def *ObjectClass) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
+func (r *ObjectClasses) IndexInterface(idx int) (def Definition) {
 	if 0 <= idx && idx < r.Len() {
 		def = r.defs[idx]
 	}
@@ -3988,6 +4035,14 @@ func (r *DITContentRules) Index(idx int) (def *DITContentRule) {
 	return
 }
 
+func (r *DITContentRules) IndexInterface(idx int) (def Definition) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
 /*
 OID returns the numeric OID literal "2.5.21.2" per [§ 4.2.6 of RFC 4512].
 
@@ -4187,6 +4242,14 @@ func (r *NameForms) Index(idx int) (def *NameForm) {
 	return
 }
 
+func (r *NameForms) IndexInterface(idx int) (def Definition) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
 /*
 OID returns the numeric OID literal "2.5.21.7" per [§ 4.2.8 of RFC 4512].
 
@@ -4376,6 +4439,14 @@ Index returns the Nth [DITStructureRule] instances found within the
 receiver instance.
 */
 func (r *DITStructureRules) Index(idx int) (def *DITStructureRule) {
+	if 0 <= idx && idx < r.Len() {
+		def = r.defs[idx]
+	}
+
+	return
+}
+
+func (r *DITStructureRules) IndexInterface(idx int) (def Definition) {
 	if 0 <= idx && idx < r.Len() {
 		def = r.defs[idx]
 	}
