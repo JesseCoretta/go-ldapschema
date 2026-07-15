@@ -2778,6 +2778,8 @@ func (r LDAPSyntaxes) OID() string { return `1.3.6.1.4.1.1466.101.120.16` }
 /*
 LDAPSyntax implements [§ 4.1.5 of RFC 4512].
 
+# Instances of this type may also be fitted with a user-supplied
+
 [§ 4.1.5 of RFC 4512]: https://datatracker.ietf.org/doc/html/rfc4512#section-4.1.5
 */
 type LDAPSyntax struct {
@@ -2785,6 +2787,42 @@ type LDAPSyntax struct {
 	Description string
 	Extensions  map[int]Extension
 	schema      *SubschemaSubentry // internal ptr to schema
+}
+
+/*
+Verify returns a Boolean value alongside an error following an analysis of
+input assertionVal argument against the underlying syntax.
+
+The returned Boolean value indicates whether assertionVal complies with the
+correct syntax, while the error instance reveals a problem encountered in
+the midst of the syntax check.
+
+This method is not to be confused with [LDAPSyntax.Valid] which only checks
+the validity of a syntax definition itself -- not an assertion value.
+
+This method has two paths:
+
+The OID held by the receiver instance is called from the [SyntaxVerifiers]
+map instance and, if found, the associated syntax checking function is used
+to test the input assertionVal argument.
+
+Otherwise, if the receiver instance bears an "X-PATTERN" extension value with
+a valid regular expression statement, the input assertionVal argument is tested
+against that statement.
+
+Failing those two options, an implicit false is returned.
+*/
+func (r LDAPSyntax) Verify(assertionVal any) (result bool, err error) {
+	if funk, found := SyntaxVerifiers[r.NumericOID]; found {
+		result, err = funk(assertionVal)
+	} else if xpat := r.xPattern(); xpat != "" {
+		var assert string
+		if assert, err = assertString(assertionVal, 0, "X-PATTERN"); err == nil {
+			result, err = regexp.MatchString(xpat, assert)
+		}
+	}
+
+	return
 }
 
 /*
@@ -2835,7 +2873,8 @@ instance bearing the `X-ORIGIN` XString and at least one (1) value.
 */
 func (r LDAPSyntax) XOrigin() (origins []string) {
 	for _, ext := range r.Extensions {
-		if strings.EqualFold(ext.XString, `X-ORIGIN`) && len(ext.Values) > 0 {
+		if strings.EqualFold(ext.XString, `X-ORIGIN`) &&
+			len(ext.Values) > 0 {
 			origins = ext.Values
 			break
 		}
@@ -3026,6 +3065,162 @@ func (r MatchingRule) isOrderingRule() (is bool) {
 
 func (r MatchingRule) isEqualityRule() (is bool) {
 	return !r.isOrderingRule() && !r.isSubstringRule()
+}
+
+/*
+EqualityAssertion returns a Boolean value alongside an error following
+an attempt to performs an equality match between input arguments a (real)
+and b (assertion).
+
+This method has two paths:
+
+  - If a closure function is passed as funk, it is called directly.
+  - If no closure was provided, a map index call against [EqualityRuleAssertions] is made and, if found, the associated closure is called directly.
+
+If neither path is accessible, an implicit error is returned.
+
+The receiver instance must represent a valid equality rule, else an error
+is returned.
+*/
+func (r MatchingRule) EqualityAssertion(a, b any, funk ...func(any, any) (bool, error)) (
+	result bool,
+	err error,
+) {
+	if !r.Valid() {
+		err = errors.New("Invalid MatchingRule definition, cannot perform equality match")
+		return
+	} else if !r.isEqualityRule() {
+		err = errors.New("MatchingRule " + r.NumericOID + " is not an equality matching rule")
+		return
+	}
+
+	// If there was an argument-supplied function
+	// or method, use it.
+	if len(funk) > 0 && funk[0] != nil {
+		result, err = funk[0](a, b)
+		return
+	}
+
+	if EqualityRuleAssertions != nil {
+		// If there is an equality matching rule present
+		// within the EqualityMatchingRuleAssertions map,
+		// use it.
+		if f, found := EqualityRuleAssertions[r.NumericOID]; found && f != nil {
+			result, err = f(a, b)
+			return
+		}
+	}
+
+	// Else, fail on the grounds of an unknown equality
+	// matching rule.
+	err = errors.New("Unknown equality matching rule for " + r.NumericOID)
+	return
+}
+
+/*
+SubstringAssertion returns a Boolean value alongside an error following
+an attempt to performs an substrings match between input arguments a (real)
+and b (assertion).
+
+This method has two paths:
+
+  - If a closure function is passed as funk, it is called directly.
+  - If no closure was provided, a map index call against [SubstringsRuleAssertions] is made and, if found, the associated closure is called directly.
+
+If neither path is accessible, an implicit error is returned.
+
+The receiver instance must represent a valid substrings rule, else an error
+is returned.
+*/
+func (r MatchingRule) SubstringAssertion(a, b any, funk ...func(any, any) (bool, error)) (
+	result bool,
+	err error,
+) {
+	if !r.Valid() {
+		err = errors.New("Invalid MatchingRule definition, cannot perform substring match")
+		return
+	} else if !r.isSubstringRule() {
+		err = errors.New("MatchingRule " + r.NumericOID + " is not a substring matching rule")
+		return
+	}
+
+	// If there was an argument-supplied function
+	// or method, use it.
+	if len(funk) > 0 && funk[0] != nil {
+		result, err = funk[0](a, b)
+		return
+	}
+
+	if SubstringsRuleAssertions != nil {
+		// If there is an substring matching rule present
+		// within the SubstringsRuleAssertions map,
+		// use it.
+		if f, found := SubstringsRuleAssertions[r.NumericOID]; found && f != nil {
+			result, err = f(a, b)
+			return
+		}
+	}
+
+	// Else, fail on the grounds of an unknown substring
+	// matching rule.
+	err = errors.New("Unknown substring matching rule for " + r.NumericOID)
+	return
+}
+
+/*
+OrderingAssertion returns a Boolean value alongside an error following
+an attempt to performs an ordering match between input arguments a (real)
+and b (assertion). The input operator byte must be 0x00 for lessOrEqual
+and 0x01 for greaterOrEqual.
+
+This method has two paths:
+
+  - If a closure function is passed as funk, it is called directly.
+  - If no closure was provided, a map index call against [OrderingRuleAssertions] is made and, if found, the associated closure is called directly.
+
+If neither path is accessible, an implicit error is returned.
+
+The receiver instance must represent a valid ordering rule, else an error
+is returned.
+*/
+func (r MatchingRule) OrderingAssertion(
+	a any,
+	operator byte,
+	b any,
+	funk ...func(any, byte, any) (bool, error),
+) (
+	result bool,
+	err error,
+) {
+	if !r.Valid() {
+		err = errors.New("Invalid MatchingRule definition, cannot perform ordering match")
+		return
+	} else if !r.isOrderingRule() {
+		err = errors.New("MatchingRule " + r.NumericOID + " is not a ordering matching rule")
+		return
+	}
+
+	// If there was an argument-supplied function
+	// or method, use it.
+	if len(funk) > 0 && funk[0] != nil {
+		result, err = funk[0](a, operator, b)
+		return
+	}
+
+	if OrderingRuleAssertions != nil {
+		// If there is an ordering matching rule present
+		// within the OrderingRuleAssertions map,
+		// use it.
+		if f, found := OrderingRuleAssertions[r.NumericOID]; found && f != nil {
+			result, err = f(a, operator, b)
+			return
+		}
+	}
+
+	// Else, fail on the grounds of an unknown ordering
+	// matching rule.
+	err = errors.New("Unknown ordering matching rule for " + r.NumericOID)
+	return
 }
 
 /*
@@ -5620,3 +5815,227 @@ var (
 	nilInstanceErr error = errors.New("Nil instance error")
 	errNotExist    error = os.ErrNotExist
 )
+
+/*
+SyntaxVerifiers is a map instance which stores closure functions or
+methods intended to check an assertion value against an associated
+syntax.
+
+Each string map index should be the OID of the relevant LDAP syntax.
+The value should be a closure function or method with a signature of:
+
+	func(any) (bool, error)
+
+Entries registered in this variable will be called via the [LDAPSyntax.Verify]
+method.
+
+Prior to use, this map instance should be initialized by the caller.
+
+It can also be populated via [syntax.SyntaxVerifiers], as the two
+instances share the same signature.
+
+It is not recommended to clobber this variable, rather it should be
+extended by way of iterative insertions, e.g.:
+
+	  for k, v := range syntax.SyntaxVerifiers{
+		// If the "imported" syntax does not reside in
+		// the *local* SyntaxVerifiers, add it.
+		if _, found := SyntaxVerifiers[k]; !found {
+			SyntaxVerifiers[k] = v
+		}
+	  }
+
+[syntax.SyntaxVerifiers]: https://github.com/JesseCoretta/go-ldapsyntax
+*/
+func lDAPSyntaxDescription(x any) (result bool, err error) {
+	_, err = marshalLDAPSyntax(x)
+	result = err == nil
+	return
+}
+
+func matchingRuleDescription(x any) (result bool, err error) {
+	_, err = marshalMatchingRule(x)
+	result = err == nil
+	return
+}
+
+func attributeTypeDescription(x any) (result bool, err error) {
+	_, err = marshalAttributeType(x)
+	result = err == nil
+	return
+}
+
+func matchingRuleUseDescription(x any) (result bool, err error) {
+	_, err = marshalMatchingRuleUse(x)
+	result = err == nil
+	return
+}
+
+func objectClassDescription(x any) (result bool, err error) {
+	_, err = marshalObjectClass(x)
+	result = err == nil
+	return
+}
+
+func dITContentRuleDescription(x any) (result bool, err error) {
+	_, err = marshalDITContentRule(x)
+	result = err == nil
+	return
+}
+
+func nameFormDescription(x any) (result bool, err error) {
+	_, err = marshalNameForm(x)
+	result = err == nil
+	return
+}
+
+func dITStructureRuleDescription(x any) (result bool, err error) {
+	_, err = marshalDITStructureRule(x)
+	result = err == nil
+	return
+}
+
+// SyntaxVerifiers is called during a call of the [LDAPSyntax.Verify]
+// method. If the [LDAPSyntax] receiver's OID is registered within this
+// variable, the accompanying syntax function is called using the input
+// assertion value.
+//
+// This variable is preinitialized and populated with functions that
+// verify the syntax of the following types:
+//
+//   - LDAP Syntax Description (1.3.6.1.4.1.1466.115.121.1.54)
+//   - Matching Rule Description (1.3.6.1.4.1.1466.115.121.1.30)
+//   - Attribute Type Description (1.3.6.1.4.1.1466.115.121.1.3)
+//   - Matching Rule Use Description (1.3.6.1.4.1.1466.115.121.1.31)
+//   - Object Class Description (1.3.6.1.4.1.1466.115.121.1.37)
+//   - DIT Content Rule Description (1.3.6.1.4.1.1466.115.121.1.16)
+//   - Name Form Description (1.3.6.1.4.1.1466.115.121.1.35)
+//   - DIT Structure Rule Description (1.3.6.1.4.1.1466.115.121.1.17)
+//
+// This variable MAY be extended in an iterative manner with other syntax,
+// such as those found in [JesseCoretta/go-ldapsyntax]. For instance:
+//
+//	for k, v := range syntax.SyntaxVerifiers{
+//	   switch tv := v.(type) {
+//	   case func(any) (bool, error):
+//	           if _, found := SyntaxVerifiers[k]; !found {
+//	                   SyntaxVerifiers[k] = v
+//	           }
+//	   }
+//	}
+//
+// [JesseCoretta/go-ldapsyntax]: https://github.com/JesseCoretta/go-ldapsyntax
+var SyntaxVerifiers map[string]func(any) (bool, error)
+
+// EqualityRuleAssertions is called during a call of the [MatchingRule.EqualityAssertion]
+// method. If the [MatchingRule] receiver's OID is registered within this
+// variable, the accompanying matching rule function is called using the
+// input real and assertion values.
+//
+// The first (left) any is the real value, while the final (right) any is
+// the assertion value.
+//
+// This variable is not preinitialized.
+//
+// This variable can be pre-populated in a simple manner for those importing
+// the [JesseCoretta/go-ldapsyntax] package via the following pseudo code:
+//
+//	if EqualityRuleAssertions == nil {
+//	   EqualityRuleAssertions = make(map[string]func(any,any)(bool,error))
+//	}
+//
+//	for k, v := range syntax.MatchingRuleAssertions{
+//	   switch tv := v.(type) {
+//	   case syntax.EqualityRuleAssertion:
+//	           if _, found := EqualityRuleAssertions[k]; !found {
+//	                   EqualityRuleAssertions[k] = func(any,any)(bool,error)(v)
+//	           }
+//	   }
+//	}
+//
+// [JesseCoretta/go-ldapsyntax]: https://github.com/JesseCoretta/go-ldapsyntax
+var EqualityRuleAssertions map[string]func(any, any) (bool, error)
+
+// SubstringsRuleAssertions is called during a call of the [MatchingRule.SubstringAssertion]
+// method. If the [MatchingRule] receiver's OID is registered within this
+// variable, the accompanying matching rule function is called using the
+// input real and assertion values.
+//
+// The first (left) any is the real value, while the final (right) any is
+// the assertion value.
+//
+// This variable is not preinitialized.
+//
+// This variable can be pre-populated in a simple manner for those importing
+// the [JesseCoretta/go-ldapsyntax] package via the following pseudo code:
+//
+//	if SubstringsRuleAssertions == nil {
+//	   SubstringsRuleAssertions = make(map[string]func(any,any)(bool,error))
+//	}
+//
+//	for k, v := range syntax.MatchingRuleAssertions{
+//	   switch tv := v.(type) {
+//	   case syntax.SubstringsRuleAssertion:
+//	           if _, found := SubstringsRuleAssertions[k]; !found {
+//	                   SubstringsRuleAssertions[k] = func(any,any)(bool,error)(v)
+//	           }
+//	   }
+//	}
+//
+// [JesseCoretta/go-ldapsyntax]: https://github.com/JesseCoretta/go-ldapsyntax
+var SubstringsRuleAssertions map[string]func(any, any) (bool, error)
+
+// OrderingRuleAssertions is called during a call of the [MatchingRule.OrderingAssertion]
+// method. If the [MatchingRule] receiver's OID is registered within this
+// variable, the accompanying matching rule function is called using the
+// input real and assertion values, along with a comparison operator.
+//
+// The operator must be a byte of 0x00 for lessOrEqual, 0x01 for greaterOrEqual.
+//
+// The first (left) any is the real value, while the final (right) any is
+// the assertion value. The operator resides between the two values, i.e.:
+//
+//	realVal <= assertionVal (lessOrEqual, 0x00)
+//	realVal >= assertionVal (greaterOrEqual, 0x01)
+//
+// This variable is not preinitialized.
+//
+// This variable can be pre-populated in a simple manner for those importing
+// the [JesseCoretta/go-ldapsyntax] package via the following pseudo code:
+//
+//	  if OrderingRuleAssertions == nil {
+//		OrderingRuleAssertions = make(map[string]func(any,byte,any)(bool,error))
+//	  }
+//
+//	  for k, v := range syntax.MatchingRuleAssertions{
+//		switch tv := v.(type) {
+//		case syntax.OrderingRuleAssertion:
+//			if _, found := OrderingRuleAssertions[k]; !found {
+//				OrderingRuleAssertions[k] = func(any,byte,any)(bool,error)(v)
+//			}
+//		}
+//	  }
+//
+// [JesseCoretta/go-ldapsyntax]: https://github.com/JesseCoretta/go-ldapsyntax
+var OrderingRuleAssertions map[string]func(any, byte, any) (bool, error)
+
+func init() {
+	SyntaxVerifiers = make(map[string]func(any) (bool, error))
+	for _, syn := range []struct {
+		OID  string
+		Func func(any) (bool, error)
+	}{
+		{`1.3.6.1.4.1.1466.115.121.1.3`, attributeTypeDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.16`, dITContentRuleDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.17`, dITStructureRuleDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.30`, matchingRuleDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.31`, matchingRuleUseDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.35`, nameFormDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.37`, objectClassDescription},
+		{`1.3.6.1.4.1.1466.115.121.1.54`, lDAPSyntaxDescription},
+	} {
+		if _, found := SyntaxVerifiers[syn.OID]; !found {
+			SyntaxVerifiers[syn.OID] = syn.Func
+		}
+	}
+}
