@@ -2802,15 +2802,10 @@ the validity of a syntax definition itself -- not an assertion value.
 
 This method has two paths:
 
-The OID held by the receiver instance is called from the [SyntaxVerifiers]
-map instance and, if found, the associated syntax checking function is used
-to test the input assertionVal argument.
+  - The OID held by the receiver instance is called from the [SyntaxVerifiers] map instance and, if found, the associated syntax checking function is used to test the input assertionVal argument.
+  - Otherwise, if the receiver instance bears an "X-PATTERN" extension value with a valid regular expression statement, the input assertionVal argument is tested against that statement.
 
-Otherwise, if the receiver instance bears an "X-PATTERN" extension value with
-a valid regular expression statement, the input assertionVal argument is tested
-against that statement.
-
-Failing those two options, an implicit false is returned.
+Failing those two options, an implicit false and an error are returned.
 */
 func (r LDAPSyntax) Verify(assertionVal any) (result bool, err error) {
 	if funk, found := SyntaxVerifiers[r.NumericOID]; found {
@@ -2820,6 +2815,8 @@ func (r LDAPSyntax) Verify(assertionVal any) (result bool, err error) {
 		if assert, err = assertString(assertionVal, 0, "X-PATTERN"); err == nil {
 			result, err = regexp.MatchString(xpat, assert)
 		}
+	} else {
+		err = errors.New("Cannot verify syntax; no valid path")
 	}
 
 	return
