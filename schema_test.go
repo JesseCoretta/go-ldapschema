@@ -358,7 +358,7 @@ func ExampleSubschemaSubentry_Push_dITContentRule() {
 
 	fmt.Printf("Found definition at index #%d\n",
 		exampleSchema.DITContentRules.Contains("1.3.6.1.4.1.56521.999.50.11"))
-	// Output: Found definition at index #1
+	// Output: Found definition at index #2
 }
 
 /*
@@ -383,7 +383,7 @@ instance of [9]uint) is of the following structure:
 */
 func ExampleSubschemaSubentry_Counters() {
 	fmt.Println(exampleSchema.Counters())
-	// Output: [67 45 97 44 29 2 1 2 287]
+	// Output: [67 45 97 44 29 3 1 2 288]
 }
 
 func ExampleAttributeType_SuperChain() {
@@ -1484,6 +1484,23 @@ var exampleSchema *SubschemaSubentry
 //go:embed example.schema
 var exampleSchemaFile []byte
 
+var testAttributeDescriptors []string = []string{
+	`cn`, `sn`, `name`, `modifyTimestamp`,
+	`l`, `c`, `co`, `mail`, `member`, `entryDN`,
+	`entryUUID`, `userPassword`, `uid`,
+	`gidNumber`, `uidNumber`, `gecos`,
+}
+
+func BenchmarkGetAttributeType(b *testing.B) {
+        b.StopTimer()
+        maxIdx := len(testAttributeDescriptors)
+        b.StartTimer()
+        for i := 0; i < b.N; i++ {
+                _, _ = exampleSchema.AttributeTypes.Get(testAttributeDescriptors[i%maxIdx])
+        }
+
+}
+
 func init() {
 	name := "schemaInit"
 
@@ -1520,7 +1537,7 @@ func init() {
 	// No need to keep raw file bytes in memory past this point.
 	lsPrimer, mrPrimer, exampleSchemaFile = nil, nil, nil
 
-	want := 281
+	want := 282
 	if counters := exampleSchema.Counters(); int(counters[8]) != want {
 		panic(fmt.Sprintf("%s failed [counter check]:\n\twant: '%d'\n\tgot:  '%d'", name, want, counters[8]))
 	}
