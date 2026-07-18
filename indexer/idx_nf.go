@@ -55,6 +55,7 @@ func (r *Index) seedNF(sch *schema.SubschemaSubentry) {
 	r.NF.Princ = make(map[string]string)
 	r.NF.O2D = make(map[string][]string)
 	r.NF.D2O = make(map[string]string)
+	r.NF.SOC = make(map[string]string)
 	r.temp.NF = make(map[string]*schema.NameForm)
 
 	for i := 0; i < sch.NameForms.Len(); i++ {
@@ -66,6 +67,11 @@ func (r *Index) seedNF(sch *schema.SubschemaSubentry) {
 			name = strings.ToLower(name)
 			r.NF.D2O[name] = def.NumericOID
 		}
+		class, _, _ := r.OC.Resolve(def.OC)
+		if class == "" {
+			panic("Unknown NamedObjectClass " + def.OC)
+		}
+		r.NF.SOC[def.NumericOID] = class
 		r.NF.D2O[def.Identifier()] = def.NumericOID
 		r.temp.NF[def.NumericOID] = def
 	}
@@ -124,6 +130,7 @@ type NameFormProperties struct {
 	Princ    map[string]string
 	Obsolete map[string]struct{}
 	DS       map[string][]string // name form (k) is used by structure rule (v)
+	SOC      map[string]string   // name form (k) uses which structural class (v)
 	Must     map[string][]string
 	May      map[string][]string
 	SrcIndex map[string]int // integer index in schema.NameForms
