@@ -6,6 +6,13 @@ import (
 	"github.com/JesseCoretta/go-ldapschema"
 )
 
+const (
+	flagSingle     uint8 = 1 << iota // 1
+	flagCollective                   // 2
+	flagNoUserMod                    // 4
+	flagObsolete                     // 8
+)
+
 func (r AttributeTypeProperties) Resolve(def string) (noid, ident string, names []string) {
 	if len(def) == 0 {
 		return
@@ -53,6 +60,7 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 	r.AT = AttributeTypeProperties{}
 	r.AT.Princ = make(map[string]string)
 	r.AT.SrcIndex = make(map[string]int)
+	r.AT.Flags = make(map[string]uint8)
 	r.AT.EFS = make(map[string]string)
 	r.AT.O2D = make(map[string][]string)
 	r.AT.D2O = make(map[string]string)
@@ -66,6 +74,7 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 		r.AT.SrcIndex[def.NumericOID] = i
 		r.AT.O2D[def.NumericOID] = def.Name
 		r.LS.AT[efs.NumericOID] = def.NumericOID
+		r.AT.attributeBools(def)
 		for _, name := range def.Name {
 			name = strings.ToLower(name)
 			r.AT.D2O[name] = def.NumericOID
@@ -77,10 +86,6 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 func (r *Index) loadAT() (err error) {
 
 	r.AT.UB = make(map[string]uint)
-	r.AT.Obsolete = make(map[string]struct{})
-	r.AT.SingleValued = make(map[string]struct{})
-	r.AT.Collective = make(map[string]struct{})
-	r.AT.NoUserMod = make(map[string]struct{})
 	r.AT.Usage = make(map[string]string)
 	r.AT.LS = make(map[string]string)
 	r.AT.MR = make(map[string]string)
@@ -91,9 +96,6 @@ func (r *Index) loadAT() (err error) {
 		if ub := attr.MinUpperBounds; ub > 0 {
 			r.AT.UB[noid] = ub
 		}
-
-		// handle bool flags
-		r.AT.attributeBools(attr)
 
 		if attr.Usage != "" {
 			r.AT.Usage[noid] = attr.Usage
@@ -119,9 +121,9 @@ func (r *Index) loadAT() (err error) {
 
 	for _, v := range r.AT.Sup {
 		var subs []string
-		for k, attr := range r.temp.AT {
+		for noid, attr := range r.temp.AT {
 			if attr.SuperType == v {
-				subs = append(subs, k)
+				subs = append(subs, noid)
 			}
 		}
 
@@ -136,34 +138,33 @@ func (r *Index) loadAT() (err error) {
 func (r *AttributeTypeProperties) attributeBools(attr *schema.AttributeType) {
 	noid := attr.NumericOID
 
-	if attr.Obsolete {
-		r.Obsolete[noid] = struct{}{}
-	}
+	var f uint8
 	if attr.Single {
-		r.SingleValued[noid] = struct{}{}
+		f |= flagSingle
 	}
 	if attr.Collective {
-		r.Collective[noid] = struct{}{}
+		f |= flagCollective
 	}
 	if attr.NoUserModification {
-		r.NoUserMod[noid] = struct{}{}
+		f |= flagNoUserMod
 	}
+	if attr.Obsolete {
+		f |= flagObsolete
+	}
+	r.Flags[noid] = f
 }
 
 type AttributeTypeProperties struct {
-	O2D          map[string][]string // numeric OID to descriptor(s)
-	D2O          map[string]string   // descriptor to numeric OID
-	Princ        map[string]string   // attribute (k) has principal identifier (v)
-	LS           map[string]string   // attribute (k) uses syntax (v)
-	MR           map[string]string   // attribute (k) uses matching rule (v)
-	Usage        map[string]string   // attribute (k) is <usage>
-	EFS          map[string]string   // attribute (k) uses effective syntax (v)
-	Sup          map[string]string   // attribute (k) has super type (v)
-	Sub          map[string][]string // attribute (k) has sub types (v)
-	SingleValued map[string]struct{} // single value only
-	Collective   map[string]struct{} // is collective
-	Obsolete     map[string]struct{} // obsolete
-	NoUserMod    map[string]struct{} // not user modifiable
-	SrcIndex     map[string]int      // integer index in schema.AttributeTypes
-	UB           map[string]uint     // upper bounds (max value size)
+	O2D      map[string][]string // numeric OID to descriptor(s)
+	D2O      map[string]string   // descriptor to numeric OID
+	Princ    map[string]string   // attribute (k) has principal identifier (v)
+	LS       map[string]string   // attribute (k) uses syntax (v)
+	MR       map[string]string   // attribute (k) uses matching rule (v)
+	Flags    map[string]uint8    // attribute (k) has bool flags (v)
+	Usage    map[string]string   // attribute (k) is <usage>
+	EFS      map[string]string   // attribute (k) uses effective syntax (v)
+	Sup      map[string]string   // attribute (k) has super type (v)
+	Sub      map[string][]string // attribute (k) has sub types (v)
+	SrcIndex map[string]int      // integer index in schema.AttributeTypes
+	UB       map[string]uint     // upper bounds (max value size)
 }

@@ -17,6 +17,19 @@ func ExampleAttributeTypeProperties_Resolve_forwardLookup() {
 	// Output: Principal name for 2.5.4.3: "cn", alt names: [cn commonName]
 }
 
+func BenchmarkAttributeTypeResolve(b *testing.B) {
+	b.StopTimer()
+	attrs := []string{
+		`cn`, `sn`, `l`, `objectClass`, `entryDN`,
+		`entryUUID`, `gecos`, `mail`, `userPassword`,
+	}
+	maxIdx := len(attrs)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = exampleIndex.AT.Resolve(attrs[i%maxIdx])
+	}
+}
+
 func BenchmarkAttributeTypeCalls(b *testing.B) {
 	var attr []string
 	for k := range exampleIndex.AT.O2D {
@@ -34,10 +47,6 @@ func BenchmarkAttributeTypeCalls(b *testing.B) {
 		_, _ = exampleIndex.AT.MR[attr[i%maxIdx]]
 		_, _ = exampleIndex.AT.Sup[attr[i%maxIdx]]
 		_, _ = exampleIndex.AT.Sub[attr[i%maxIdx]]
-		_, _ = exampleIndex.AT.Obsolete[attr[i%maxIdx]]
-		_, _ = exampleIndex.AT.Collective[attr[i%maxIdx]]
-		_, _ = exampleIndex.AT.NoUserMod[attr[i%maxIdx]]
-		_, _ = exampleIndex.AT.SingleValued[attr[i%maxIdx]]
 		_, _ = exampleIndex.AT.Usage[attr[i%maxIdx]]
 		_, _ = exampleIndex.AT.SrcIndex[attr[i%maxIdx]]
 	}
