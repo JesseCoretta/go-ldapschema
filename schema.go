@@ -5623,32 +5623,75 @@ func condenseWHSP(input any) (a string) {
 	return
 }
 
+// fast ASCII-only case-insensitive compare
+func eqFoldASCII(a, b string) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for i := 0; i < len(a); i++ {
+        ca := a[i]
+        cb := b[i]
+
+        if ca >= 'A' && ca <= 'Z' {
+            ca += 32
+        }
+        if cb >= 'A' && cb <= 'Z' {
+            cb += 32
+        }
+
+        if ca != cb {
+            return false
+        }
+    }
+    return true
+}
+
 func strInSlice(r any, slice []string, cEM ...bool) (match bool) {
-	// assume caseIgnoreMatch by default
-	funk := strings.EqualFold
-	if len(cEM) > 0 {
-		if cEM[0] {
-			// use caseExactMatch
-			funk = func(a, b string) bool {
-				return a == b
-			}
-		}
-	}
+    caseExact := len(cEM) > 0 && cEM[0]
+    switch tv := r.(type) {
 
-	switch tv := r.(type) {
-	case string:
-		for i := 0; i < len(slice) && !match; i++ {
-			match = funk(tv, slice[i])
-		}
-	case []string:
-		for i := 0; i < len(tv) && !match; i++ {
-			for j := 0; j < len(slice) && !match; j++ {
-				match = funk(tv[i], slice[j])
-			}
-		}
-	}
+    case string:
+        if caseExact {
+            for i := 0; i < len(slice); i++ {
+                if tv == slice[i] {
+                    return true
+                }
+            }
+            return false
+        }
 
-	return
+        for i := 0; i < len(slice); i++ {
+            if eqFoldASCII(tv, slice[i]) {
+                return true
+            }
+        }
+        return false
+
+    case []string:
+        if caseExact {
+            for i := 0; i < len(tv); i++ {
+                s := tv[i]
+                for j := 0; j < len(slice); j++ {
+                    if s == slice[j] {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        for i := 0; i < len(tv); i++ {
+            s := tv[i]
+            for j := 0; j < len(slice); j++ {
+                if eqFoldASCII(s, slice[j]) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    return false
 }
 
 func assertString(x any, min int, name string) (str string, err error) {
