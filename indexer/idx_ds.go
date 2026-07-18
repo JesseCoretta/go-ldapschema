@@ -49,6 +49,22 @@ func (r DITStructureRuleProperties) Index(def string) (idx int) {
 	return
 }
 
+func (r DITStructureRuleProperties) SubRules(def string) []string {
+	var sub []string
+	if d, _, _ := r.Resolve(def); d != "" {
+		sub, _ = r.Sub[d]
+	}
+	return sub
+}
+
+func (r DITStructureRuleProperties) SuperRules(def string) []string {
+	var sub []string
+	if d, _, _ := r.Resolve(def); d != "" {
+		sub, _ = r.Sup[d]
+	}
+	return sub
+}
+
 func (r *Index) seedDS(sch *schema.SubschemaSubentry) {
 	r.DS = DITStructureRuleProperties{}
 	r.DS.SrcIndex = make(map[string]int)
@@ -97,8 +113,9 @@ func (r *Index) loadDS() (err error) {
 
 		var supers []string
 		for j := 0; j < len(rule.SuperRules); j++ {
-			super := r.DS.D2O[rule.SuperRules[j]]
-			supers = append(supers, super)
+			if super, _, _ := r.DS.Resolve(rule.SuperRules[j]); super != "" {
+				supers = append(supers, super)
+			}
 		}
 		if len(supers) > 0 {
 			r.DS.Sup[rid] = supers

@@ -91,8 +91,9 @@ func (r *Index) loadNF() (err error) {
 
 		var must []string
 		for j := 0; j < len(form.Must); j++ {
-			a := r.AT.D2O[form.Must[j]]
-			must = append(must, a)
+			if a, _, _ := r.AT.Resolve(form.Must[j]); a != "" {
+				must = append(must, a)
+			}
 		}
 		if len(must) > 0 {
 			r.NF.Must[noid] = must
@@ -100,8 +101,9 @@ func (r *Index) loadNF() (err error) {
 
 		var may []string
 		for j := 0; j < len(form.May); j++ {
-			a := r.AT.D2O[form.May[j]]
-			may = append(may, a)
+			if a, _, _ := r.AT.Resolve(form.May[j]); a != "" {
+				may = append(may, a)
+			}
 		}
 		if len(may) > 0 {
 			r.NF.May[noid] = may

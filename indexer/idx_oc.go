@@ -86,8 +86,9 @@ func (r *Index) loadOC() (err error) {
 
 		var must []string
 		for j := 0; j < len(class.Must); j++ {
-			a := r.AT.D2O[class.Must[j]]
-			must = append(must, a)
+			if a, _, _ := r.AT.Resolve(class.Must[j]); a != "" {
+				must = append(must, a)
+			}
 		}
 		if len(must) > 0 {
 			r.OC.Must[noid] = must
@@ -95,8 +96,9 @@ func (r *Index) loadOC() (err error) {
 
 		var may []string
 		for j := 0; j < len(class.May); j++ {
-			a := r.AT.D2O[class.May[j]]
-			may = append(may, a)
+			if a, _, _ := r.AT.Resolve(class.May[j]); a != "" {
+				may = append(may, a)
+			}
 		}
 		if len(may) > 0 {
 			r.OC.May[noid] = may
@@ -104,8 +106,9 @@ func (r *Index) loadOC() (err error) {
 
 		var supers []string
 		for j := 0; j < len(class.SuperClasses); j++ {
-			o := r.OC.D2O[class.SuperClasses[j]]
-			supers = append(supers, o)
+			if o, _, _ := r.AT.Resolve(class.SuperClasses[j]); o != "" {
+				supers = append(supers, o)
+			}
 		}
 		if len(supers) > 0 {
 			r.OC.Sup[noid] = supers

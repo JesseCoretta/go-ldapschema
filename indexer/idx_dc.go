@@ -84,32 +84,36 @@ func (r *Index) loadDC() (err error) {
 		}
 		var aux []string
 		for j := 0; j < len(rule.Aux); j++ {
-			a := r.OC.D2O[rule.Aux[j]]
-			aux = append(aux, a)
+			if a, _, _ := r.OC.Resolve(rule.Aux[j]); a != "" {
+				aux = append(aux, a)
+			}
 		}
 		if len(aux) > 0 {
 			r.DC.Aux[noid] = aux
 		}
 		var must []string
 		for j := 0; j < len(rule.Must); j++ {
-			a := r.AT.D2O[rule.Must[j]]
-			must = append(must, a)
+			if a, _, _ := r.AT.Resolve(rule.Must[j]); a != "" {
+				must = append(must, a)
+			}
 		}
 		if len(must) > 0 {
 			r.DC.Must[noid] = must
 		}
 		var may []string
 		for j := 0; j < len(rule.May); j++ {
-			a := r.AT.D2O[rule.May[j]]
-			may = append(may, a)
+			if a, _, _ := r.AT.Resolve(rule.May[j]); a != "" {
+				may = append(may, a)
+			}
 		}
 		if len(may) > 0 {
 			r.DC.May[noid] = may
 		}
 		var not []string
 		for j := 0; j < len(rule.Not); j++ {
-			a := r.AT.D2O[rule.Not[j]]
-			not = append(not, a)
+			if a, _, _ := r.AT.Resolve(rule.Not[j]); a != "" {
+				not = append(not, a)
+			}
 		}
 		if len(not) > 0 {
 			r.DC.Not[noid] = not

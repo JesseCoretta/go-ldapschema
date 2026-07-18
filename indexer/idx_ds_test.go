@@ -17,6 +17,18 @@ func ExampleDITStructureRuleProperties_Resolve_forwardLookup() {
 	// Output: Principal name for rule 1: "applicationProcessStructure"
 }
 
+func ExampleDITStructureRuleProperties_SuperRules() {
+	sub := exampleIndex.DS.SuperRules(`2`)
+	fmt.Printf("SuperRules of 2: %v", sub)
+	// Output: SuperRules of 2: [1 2]
+}
+
+func ExampleDITStructureRuleProperties_SubRules() {
+	sub := exampleIndex.DS.SubRules(`1`)
+	fmt.Printf("SubRules of 2: %v", sub)
+	// Output: SubRules of 2: [2]
+}
+
 func BenchmarkDITStructureRuleCalls(b *testing.B) {
 
 	var rule []string
