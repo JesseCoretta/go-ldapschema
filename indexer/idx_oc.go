@@ -106,7 +106,7 @@ func (r *Index) loadOC() (err error) {
 
 		var supers []string
 		for j := 0; j < len(class.SuperClasses); j++ {
-			if o, _, _ := r.AT.Resolve(class.SuperClasses[j]); o != "" {
+			if o, _, _ := r.OC.Resolve(class.SuperClasses[j]); o != "" {
 				supers = append(supers, o)
 			}
 		}
