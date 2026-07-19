@@ -128,7 +128,6 @@ type DITContentRuleProperties struct {
 	D2O      map[string]string   // descriptor to numeric ID
 	Princ    map[string]string
 	Obsolete map[string]struct{} // obsolete
-	OC       map[string]string   // structural object class
 	Aux      map[string][]string // auxiliary object classes
 	Must     map[string][]string // mandatory attribute types
 	May      map[string][]string // optional attribute types

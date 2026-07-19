@@ -61,7 +61,8 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 	r.AT.Princ = make(map[string]string)
 	r.AT.SrcIndex = make(map[string]int)
 	r.AT.Flags = make(map[string]uint8)
-	r.AT.EFS = make(map[string]string)
+	r.AT.MR = make(map[string]string)
+	r.AT.LS = make(map[string]string)
 	r.AT.O2D = make(map[string][]string)
 	r.AT.D2O = make(map[string]string)
 	r.temp.AT = make(map[string]*schema.AttributeType)
@@ -69,8 +70,18 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 	for i := 0; i < sch.AttributeTypes.Len(); i++ {
 		def := sch.AttributeTypes.Index(i)
 		efs := def.EffectiveSyntax()
+		for _, rule := range []func() *schema.MatchingRule{
+			def.EffectiveEquality,
+			def.EffectiveSubstring,
+			def.EffectiveOrdering,
+		} {
+			if mr := rule(); mr != nil {
+				r.AT.MR[def.NumericOID] = mr.NumericOID
+				break
+			}
+		}
 		r.AT.Princ[def.NumericOID] = def.Identifier()
-		r.AT.EFS[def.NumericOID] = efs.NumericOID
+		r.AT.LS[def.NumericOID] = efs.NumericOID
 		r.AT.SrcIndex[def.NumericOID] = i
 		r.AT.O2D[def.NumericOID] = def.Name
 		r.LS.AT[efs.NumericOID] = def.NumericOID
@@ -101,7 +112,7 @@ func (r *Index) loadAT() (err error) {
 			r.AT.Usage[noid] = attr.Usage
 		}
 
-		syn := r.AT.EFS[noid]
+		syn := r.AT.LS[noid]
 		r.AT.LS[noid] = syn
 
 		for _, rule := range []string{
@@ -194,7 +205,6 @@ type AttributeTypeProperties struct {
 	MR       map[string]string   // attribute (k) uses matching rule (v)
 	Flags    map[string]uint8    // attribute (k) has bool flags (v)
 	Usage    map[string]string   // attribute (k) is <usage>
-	EFS      map[string]string   // attribute (k) uses effective syntax (v)
 	Sup      map[string]string   // attribute (k) has super type (v)
 	Sub      map[string][]string // attribute (k) has sub types (v)
 	SrcIndex map[string]int      // integer index in schema.AttributeTypes
