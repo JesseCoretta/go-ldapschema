@@ -154,6 +154,38 @@ func (r *AttributeTypeProperties) attributeBools(attr *schema.AttributeType) {
 	r.Flags[noid] = f
 }
 
+func (r AttributeTypeProperties) IsSingleValued(def string) bool {
+	var is bool
+	if f, ok := r.Flags[def]; ok {
+		is = f&flagSingle != 0
+	}
+	return is
+}
+
+func (r AttributeTypeProperties) IsCollective(def string) bool {
+	var is bool
+	if f, ok := r.Flags[def]; ok {
+		is = f&flagCollective != 0
+	}
+	return is
+}
+
+func (r AttributeTypeProperties) IsObsolete(def string) bool {
+	var is bool
+	if f, ok := r.Flags[def]; ok {
+		is = f&flagObsolete != 0
+	}
+	return is
+}
+
+func (r AttributeTypeProperties) IsNotUserModifiable(def string) bool {
+	var is bool
+	if f, ok := r.Flags[def]; ok {
+		is = f&flagNoUserMod != 0
+	}
+	return is
+}
+
 type AttributeTypeProperties struct {
 	O2D      map[string][]string // numeric OID to descriptor(s)
 	D2O      map[string]string   // descriptor to numeric OID
