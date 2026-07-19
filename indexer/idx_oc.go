@@ -74,6 +74,8 @@ func (r *Index) loadOC() (err error) {
 	r.OC.Kind = make(map[string]uint8)
 	r.OC.Must = make(map[string][]string)
 	r.OC.May = make(map[string][]string)
+	r.OC.AllMust = make(map[string][]string)
+	r.OC.AllMay = make(map[string][]string)
 	r.OC.Sup = make(map[string][]string)
 	r.OC.Sub = make(map[string][]string)
 	r.OC.Obsolete = make(map[string]struct{})
@@ -84,7 +86,7 @@ func (r *Index) loadOC() (err error) {
 		}
 		r.OC.Kind[noid] = class.Kind
 
-		var must []string
+		var must, allmust []string
 		for j := 0; j < len(class.Must); j++ {
 			if a, _, _ := r.AT.Resolve(class.Must[j]); a != "" {
 				must = append(must, a)
@@ -94,7 +96,15 @@ func (r *Index) loadOC() (err error) {
 			r.OC.Must[noid] = must
 		}
 
-		var may []string
+		alms := class.AllMust()
+		for j := 0; j < alms.Len(); j++ {
+			allmust = append(allmust, alms.Index(j).NumericOID)
+		}
+		if len(allmust) > 0 {
+			r.OC.AllMust[noid] = allmust
+		}
+
+		var may, allmay []string
 		for j := 0; j < len(class.May); j++ {
 			if a, _, _ := r.AT.Resolve(class.May[j]); a != "" {
 				may = append(may, a)
@@ -102,6 +112,14 @@ func (r *Index) loadOC() (err error) {
 		}
 		if len(may) > 0 {
 			r.OC.May[noid] = may
+		}
+
+		alms = class.AllMay()
+		for j := 0; j < alms.Len(); j++ {
+			allmay = append(allmay, alms.Index(j).NumericOID)
+		}
+		if len(allmay) > 0 {
+			r.OC.AllMay[noid] = allmay
 		}
 
 		var supers []string
@@ -148,6 +166,8 @@ type ObjectClassProperties struct {
 	Sup      map[string][]string
 	Sub      map[string][]string
 	Must     map[string][]string
+	AllMust  map[string][]string
 	May      map[string][]string
+	AllMay   map[string][]string
 	SrcIndex map[string]int // integer index in schema.ObjectClasses
 }
