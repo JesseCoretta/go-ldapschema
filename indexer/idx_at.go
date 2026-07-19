@@ -69,7 +69,6 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 
 	for i := 0; i < sch.AttributeTypes.Len(); i++ {
 		def := sch.AttributeTypes.Index(i)
-		efs := def.EffectiveSyntax()
 		for _, rule := range []func() *schema.MatchingRule{
 			def.EffectiveEquality,
 			def.EffectiveSubstring,
@@ -80,6 +79,8 @@ func (r *Index) seedAT(sch *schema.SubschemaSubentry) {
 				break
 			}
 		}
+
+		efs := def.EffectiveSyntax()
 		r.AT.Princ[def.NumericOID] = def.Identifier()
 		r.AT.LS[def.NumericOID] = efs.NumericOID
 		r.AT.SrcIndex[def.NumericOID] = i
@@ -98,8 +99,6 @@ func (r *Index) loadAT() (err error) {
 
 	r.AT.UB = make(map[string]uint)
 	r.AT.Usage = make(map[string]string)
-	r.AT.LS = make(map[string]string)
-	r.AT.MR = make(map[string]string)
 	r.AT.Sup = make(map[string]string)
 	r.AT.Sub = make(map[string][]string)
 
